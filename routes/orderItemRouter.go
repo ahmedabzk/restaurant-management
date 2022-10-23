@@ -1,11 +1,14 @@
 package routes
 
-import "github.com/ahmedabzk/restaurant-management/controllers"
+import (
+	"github.com/ahmedabzk/restaurant-management/controllers"
+	"github.com/gin-gonic/gin"
+)
 
-func OrderItemRoutes(incomingRoutes *gin.Engine){
+func OrderItemRoutes(incomingRoutes *gin.Engine) {
 	incomingRoutes.GET("/orderItems", controllers.GetOrderItems())
 	incomingRoutes.GET("/orderItems/:orderItem_id", controllers.GetOrderItem())
 	incomingRoutes.GET("/orderItems-order/:order_id", controllers.GetOrderItemsByOrder())
 	incomingRoutes.POST("/orderItems", controllers.CreateOrderItems())
-	incomingRoutes.PATCH("/orderItems/:orderItem_id", controllers.UpdateTable())
+	incomingRoutes.PATCH("/orderItems/:orderItem_id", controllers.UpdateOrderItem())
 }
