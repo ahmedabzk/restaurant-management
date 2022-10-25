@@ -12,20 +12,21 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 var menuCollection *mongo.Collection = database.OpenCollection(database.Client, "menu")
 
 func GetMenus() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		result, err := menuCollection.Find(context.TODO(), bson.D{})
+		result, err := menuCollection.Find(context.TODO(), bson.M{})
 
 		defer cancel()
 		if err != nil{
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 
-		var allMenus []bson.D
+		var allMenus []bson.M
 
 		err = result.All(ctx, &allMenus)
 		defer cancel()
@@ -94,7 +95,58 @@ func CreateMenus() gin.HandlerFunc {
 }
 
 func UpdateMenu() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
+	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+
+		var menu models.Menu
+
+		if err := c.BindJSON(&menu); err != nil{
+			c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
+			return 
+		}
+		menuId := c.Param("menu_id")
+		filter := bson.M{"menu_id":menuId}
+
+		var updateObj = bson.D
+
+		if menu.Start_date != nil && menu.End_date != nil{
+			if !inTimeSpan(*menu.Start_date, *menu.End_date, time.Now()){
+				msg := fmt.Sprintf("please retype the time")
+				c.JSON(http.StatusInternalServerError, gin.H{"error":msg})
+				defer cancel()
+				return 
+			}
+			updateObj = append(updateObj, bson.E{"start_date", menu.Start_date})
+			updateObj = append(updateObj, bson.E{"end_date", menu.End_date})
+
+			if menu.Name != ""{
+				updateObj = append(updateObj, bson.E{"name", menu.Name})
+			}
+			if menu.Category != ""{
+				updateObj = append(updateObj, bson.E{"category", menu.Category})
+			}
+			menu.Updated_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+			updateObj = append(updateObj, bson.E{"updated_at", menu.Updated_at})
+
+			upsert := true
+
+			opt := options.UpdateOptions{
+				Upsert: &upsert,
+			}
+
+			result, err := menuCollection.UpdateOne(
+				ctx,
+				filter,
+				bson.D{"$set", updateObj},
+				&opt,
+			)
+			if err != nil{
+				c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
+			}
+			defer cancel()
+			c.JSON(http.StatusOK, result)
+		}
+
 
 	}
 }
