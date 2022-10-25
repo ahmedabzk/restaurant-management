@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/ahmedabzk/restaurant-management/database"
@@ -12,6 +13,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -21,7 +23,41 @@ var validate = validator.New()
 
 func GetFoods() gin.HandlerFunc{
 	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
+		recordPerPage, err := strconv.Atoi(c.Query("recordPerPage"))
+		if err != nil || recordPerPage < 1{
+			recordPerPage = 10
+		}
+		page, err := strconv.Atoi(c.Query("page"))
+		if err != nil || page < 1{
+			page = 1
+		}
+
+		startIndex := (page - 1)* recordPerPage
+		startIndex, err = strconv.Atoi(c.Query("startIndex"))
+
+		// mongodb aggregation
+
+		matchStage := bson.D{{"$match", bson.D{{}}}}
+		groupStage := bson.D{{"$group", bson.D{{"_id", bson.D{{"_id", "null"}}}, {"total_count", bson.D{{"$sum", "1"}}}, {"data", bson.D{{"$push","$$ROOT"}}}}}}
+		projectStage := bson.D{
+			"$project", bson.D{
+				{"id", 0},
+				{"total_count", 1},
+				{"food_items", bson.D{{"$slice", []interface{}{"$data", startIndex, recordPerPage}}}},
+			}
+		}
+		result, err := foodCollection.Aggregate(ctx mongo.Pipeline{
+			matchStage,grgroupStage, projprojectStage
+		})
+		defer cancel()
+
+		if err != nil{
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+
+		var allFoods []bson.M
 	}
 }
 
