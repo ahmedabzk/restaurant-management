@@ -140,7 +140,9 @@ func UpdateMenu() gin.HandlerFunc {
 			result, err := menuCollection.UpdateOne(
 				ctx,
 				filter,
-				bson.D{"$set", updateObj},
+				bson.D{
+					{"$set", updateObj},
+				},
 				&opt,
 			)
 			if err != nil{

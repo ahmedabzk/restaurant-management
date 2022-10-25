@@ -191,7 +191,9 @@ func UpdateFood()gin.HandlerFunc{
 		result, err := foodCollection.UpdateOne(
 			ctx,
 			filter,
-			bson.D{"$set", updateObj},
+			bson.D{
+				{"$set", updateObj},
+			},
 			&opt
 		)
 		if err != nil{
