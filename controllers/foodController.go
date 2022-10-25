@@ -16,7 +16,7 @@ import (
 )
 
 var foodCollection *mongo.Collection = database.OpenCollection(database.Client, "food")
-var menuCollection *mongo.Collection = database.OpenCollection(database.Client, "menu")
+// var menuCollection *mongo.Collection = database.OpenCollection(database.Client, "menu")
 var validate = validator.New()
 
 func GetFoods() gin.HandlerFunc{
@@ -75,8 +75,17 @@ func CreateFood() gin.HandlerFunc{
 		food.Updated_at, _ = time.Parse(time.RFC3339, time.Now()).Format(time.RFC3339)
 		food.ID = primitive.NewObjectID()
 		food.Food_id = food.ID.Hex()
-		var num = toFixed(*food.Price, 2)
-		food.Price = &num
+		var num = toFixed(food.Price, 2)
+		food.Price = num
+
+		result, insertErr := foodCollection.InsertOne(ctx, food)
+		defer cancel()
+		if insertErr != nil{
+			msg := fmt.Sprintf("food item not created")
+			c.JSON(http.StatusInternalServerError, gin.H{"error":msg})
+			return 
+		}
+		c.JSON(http.StatusOK, result)
 	}
 }
 
