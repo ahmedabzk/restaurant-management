@@ -1,6 +1,17 @@
 package controllers
 
-import "github.com/gin-gonic/gin"
+import (
+	"context"
+	"net/http"
+	"time"
+
+	"github.com/ahmedabzk/restaurant-management/database"
+	"github.com/ahmedabzk/restaurant-management/models"
+	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+)
+var orderCollection *mongo.Collection = database.OpenCollection(database.Client, "order")
 
 func GetOrders() gin.HandlerFunc{
 	return func(ctx *gin.Context) {
@@ -9,7 +20,20 @@ func GetOrders() gin.HandlerFunc{
 }
 
 func GetOrder() gin.HandlerFunc{
-	return func(ctx *gin.Context){
+	return func(c *gin.Context){
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		orderId := c.Param("order_id")
+		var order models.Order
+
+		err := orderCollection.FindOne(ctx, bson.M{"order_id":orderId}).Decode(&order)
+		defer cancel()
+
+		if err != nil{
+			c.JSON(http.StatusBadRequest, gin.H{"error":err.Error()})
+		}
+		c.JSON(http.StatusOK, order)
+		
+		
 
 	}
 }
