@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"time"
 
@@ -14,8 +15,24 @@ import (
 var orderCollection *mongo.Collection = database.OpenCollection(database.Client, "order")
 
 func GetOrders() gin.HandlerFunc{
-	return func(ctx *gin.Context) {
+	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
+		result, err := orderCollection.Find(context.TODO(), bson.M{})
+		defer cancel()
+
+		if err != nil{
+			c.JSON(http.StatusBadRequest, gin.H{"error":err.Error()})
+		}
+
+		var allOrders []bson.D
+
+		if err = result.All(ctx, &allOrders); err != nil{
+			log.Fatal(err)
+		}
+
+		defer cancel()
+		c.JSON(http.StatusOK, allOrders)
 	}
 }
 
