@@ -10,24 +10,26 @@ import (
 	"github.com/ahmedabzk/restaurant-management/models"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
+
 var orderCollection *mongo.Collection = database.OpenCollection(database.Client, "order")
 
-func GetOrders() gin.HandlerFunc{
+func GetOrders() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 		result, err := orderCollection.Find(context.TODO(), bson.M{})
 		defer cancel()
 
-		if err != nil{
-			c.JSON(http.StatusBadRequest, gin.H{"error":err.Error()})
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 
 		var allOrders []bson.D
 
-		if err = result.All(ctx, &allOrders); err != nil{
+		if err = result.All(ctx, &allOrders); err != nil {
 			log.Fatal(err)
 		}
 
@@ -36,33 +38,43 @@ func GetOrders() gin.HandlerFunc{
 	}
 }
 
-func GetOrder() gin.HandlerFunc{
-	return func(c *gin.Context){
+func GetOrder() gin.HandlerFunc {
+	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		orderId := c.Param("order_id")
 		var order models.Order
 
-		err := orderCollection.FindOne(ctx, bson.M{"order_id":orderId}).Decode(&order)
+		err := orderCollection.FindOne(ctx, bson.M{"order_id": orderId}).Decode(&order)
 		defer cancel()
 
-		if err != nil{
-			c.JSON(http.StatusBadRequest, gin.H{"error":err.Error()})
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 		c.JSON(http.StatusOK, order)
-		
-		
 
 	}
 }
 
-func CreateOrders() gin.HandlerFunc{
+func CreateOrders() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 
 	}
 }
 
-func UpdateOrder() gin.HandlerFunc{
-	return func(ctx *gin.Context) {
-		
+func UpdateOrder() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var table models.Table
+		var order models.Order
+
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+
+		var updateObj primitive.D
+
+		orderId := c.Param("order_id")
+
+		if err := c.BindJSON(&order); err != nil{
+			c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
+			return 
+		}
 	}
 }
