@@ -93,6 +93,9 @@ func CreateMenus() gin.HandlerFunc {
 		defer cancel()
 	}
 }
+func inTimeSpan(start, end, check time.Time) bool{
+	return start.After(time.Now()) && end.After(start)
+}
 
 func UpdateMenu() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -107,7 +110,7 @@ func UpdateMenu() gin.HandlerFunc {
 		menuId := c.Param("menu_id")
 		filter := bson.M{"menu_id":menuId}
 
-		var updateObj = bson.D
+		var updateObj primitive.D
 
 		if menu.Start_date != nil && menu.End_date != nil{
 			if !inTimeSpan(*menu.Start_date, *menu.End_date, time.Now()){
