@@ -73,18 +73,12 @@ func CreateMenus() gin.HandlerFunc {
 			return 
 		}
 
-		err := menuCollection.FindOne(ctx, bson.M{"menu_id":menu.Menu_id}).Decode(&menu)
-		defer cancel()
-		if err != nil{
-			c.JSON(http.StatusBadRequest, gin.H{"error":err.Error()})
-		}
 
-		menu.Created_at, _ = time.Parse(time.RFC3339, time.Now()).Format(time.RFC3339)
-		menu.Updated_at, _ = time.Parse(time.RFC3339, time.Now()).Format(time.RFC3339)
+		menu.Created_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+		menu.Updated_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
 		menu.ID = primitive.NewObjectID()
 		menu.Menu_id = menu.ID.Hex()
-		menu.Start_date = &time.Time{}
-		menu.End_date = &time.Time{}
+		
 		
 		result, insertErr := menuCollection.InsertOne(ctx, menu)
 
@@ -95,6 +89,7 @@ func CreateMenus() gin.HandlerFunc {
 			return 
 		}
 		c.JSON(http.StatusOK, result)
+		defer cancel()
 	}
 }
 
