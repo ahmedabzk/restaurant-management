@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -48,7 +49,8 @@ func GetFoods() gin.HandlerFunc{
 				{"food_items", bson.D{{"$slice", []interface{}{"$data", startIndex, recordPerPage}}}},
 			}
 		}
-		result, err := foodCollection.Aggregate(ctx mongo.Pipeline{
+
+		result, err := foodCollection.Aggregate(ctx, mongo.Pipeline{
 			matchStage,grgroupStage, projprojectStage
 		})
 		defer cancel()
@@ -58,6 +60,11 @@ func GetFoods() gin.HandlerFunc{
 		}
 
 		var allFoods []bson.M
+
+		if err := result.all(ctx, &allFoods); err != nil{
+			log.Fatal(err)
+		}
+		c.JSON(http.StatusOK, allFoods[0])
 	}
 }
 
