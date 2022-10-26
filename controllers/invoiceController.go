@@ -102,6 +102,10 @@ func CreateInvoices() gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error":"did not find the order"})
 			return 
 		}
+		status := "PENDING"
+		if invoice.Payment_status == nil{
+			invoice.Payment_status = &status
+		}
 	}
 }
 
@@ -123,10 +127,10 @@ func UpdateInvoice() gin.HandlerFunc {
 		var updateObj primitive.D
 
 		if invoice.Payment_method != nil{
-
+			updateObj = append(updateObj, bson.E{"payment_method",invoice.Payment_method})
 		}
 		if invoice.Payment_status != nil{
-
+			updateObj = append(updateObj, bson.E{"payment_status",invoice.Payment_status})
 		}
 
 		invoice.Updated_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
