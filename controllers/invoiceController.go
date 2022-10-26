@@ -83,13 +83,13 @@ func GetInvoice() gin.HandlerFunc {
 }
 
 func CreateInvoices() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
+	return func(c *gin.Context) {
 
 	}
 }
 
 func UpdateInvoice() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
+	return func(c *gin.Context) {
 
 	}
 }
