@@ -29,7 +29,7 @@ func GetOrders() gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 
-		var allOrders []bson.D
+		var allOrders []bson.M
 
 		if err = result.All(ctx, &allOrders); err != nil {
 			log.Fatal(err)
