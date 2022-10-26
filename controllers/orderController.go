@@ -69,6 +69,12 @@ func CreateOrders() gin.HandlerFunc {
 			return 
 		}
 
+		validateErr := validate.Struct(order)
+		if validateErr != nil{
+			c.JSON(http.StatusInternalServerError, gin.H{"error":validateErr.Error()})
+			return 
+		}
+
 		if order.Table_id != nil{
 			err := tableCollection.FindOne(ctx, bson.M{"table_id":order.Table_id}).Decode(&table)
 			defer cancel()

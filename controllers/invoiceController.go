@@ -106,6 +106,27 @@ func CreateInvoices() gin.HandlerFunc {
 		if invoice.Payment_status == nil{
 			invoice.Payment_status = &status
 		}
+		invoice.Payment_due_date, _ = time.Parse(time.RFC3339, time.Now().AddDate(0, 0, 1).Format(time.RFC3339))
+		invoice.Created_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+		invoice.Updated_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+
+		invoice.ID = primitive.NewObjectID()
+		invoice.Invoice_id = invoice.ID.Hex()
+
+
+		validateErr := validate.Struct(invoice)
+		if validateErr != nil{
+			c.JSON(http.StatusInternalServerError, gin.H{"error":validateErr.Error()})
+			return 
+		}
+
+		result, insertErr := invoiceCollection.InsertOne(ctx, invoice)
+		defer cancel()
+		if insertErr != nil{
+			c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
+			return 
+		}
+		c.JSON(http.StatusOK, result)
 	}
 }
 
