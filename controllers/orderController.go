@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var orderCollection *mongo.Collection = database.OpenCollection(database.Client, "order")
@@ -76,5 +77,39 @@ func UpdateOrder() gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
 			return 
 		}
+		if order.Table_id != nil{
+			err := menuCollection.FindOne(ctx, bson.M{"table_id":order.Table_id}).Decode(&table)
+
+			defer cancel()
+
+			if err != nil{
+				c.JSON(http.StatusBadRequest, gin.H{"error":err.Error()})
+				return 
+			}
+			updateObj = append(updateObj, bson.E{"menu", order.Table_id})
+		}
+		order.Updated_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+		updateObj = append(updateObj, bson.E{"updated_at", order.Updated_at})
+
+		upset := true
+		filter := bson.M{"order_id":orderId}
+
+		opt := options.UpdateOptions{
+			Upsert: &upset,
+		}
+
+		result, err := orderCollection.UpdateOne(
+			ctx,
+			filter,
+			bson.D{
+				{"&set", updateObj},
+			},
+			&opt,
+		)
+		if err != nil{
+			c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
+		}
+		defer cancel()
+		c.JSON(http.StatusOK, result)
 	}
 }
