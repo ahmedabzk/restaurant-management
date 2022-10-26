@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -57,8 +58,40 @@ func GetOrder() gin.HandlerFunc {
 }
 
 func CreateOrders() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
+	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 
+		var order models.Order
+		var table models.Table
+
+		if err := c.BindJSON(&order); err != nil{
+			c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
+			return 
+		}
+
+		if order.Table_id != nil{
+			err := tableCollection.FindOne(ctx, bson.M{"table_id":order.Table_id}).Decode(&table)
+			defer cancel()
+			if err != nil{
+				c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
+				return 
+			}
+		}
+		order.Created_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+		order.Updated_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+
+		order.ID = primitive.NewObjectID()
+		order.Order_id = order.ID.Hex()
+
+		result, insertErr := orderCollection.InsertOne(ctx, order)
+
+		if insertErr != nil{
+			msg := fmt.Sprintf("could not create the new order")
+			c.JSON(http.StatusBadRequest, gin.H{"error":msg})
+			return 
+		}
+		defer cancel()
+		c.JSON(http.StatusOK, result)
 	}
 }
 
