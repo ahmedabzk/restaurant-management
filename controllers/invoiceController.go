@@ -10,7 +10,9 @@ import (
 	"github.com/ahmedabzk/restaurant-management/models"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type InvoiceViewFormat struct {
@@ -90,6 +92,53 @@ func CreateInvoices() gin.HandlerFunc {
 
 func UpdateInvoice() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(context.Background(),100*time.Second)
 
+		invoiceId := c.Param("invoice_id")
+
+		var invoice models.Invoice
+
+		if err := c.BindJSON(&invoice); err != nil{
+			c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
+			return
+		}
+
+		filter := bson.M{"invoice_id":invoiceId}
+
+		var updateObj primitive.D
+
+		if invoice.Payment_method != nil{
+
+		}
+		if invoice.Payment_status != nil{
+
+		}
+
+		invoice.Updated_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+		updateObj = append(updateObj, bson.E{"updated_at", invoice.Updated_at})
+
+		invoice.ID = primitive.NewObjectID()
+		invoice.Invoice_id = invoice.ID.Hex()
+
+		upset := true
+
+		opt := options.UpdateOptions{
+			Upsert: &upset,
+		}
+
+		result, err := invoiceCollection.UpdateOne(
+			ctx,
+			filter,
+			bson.D{
+				{"&set", updateObj},
+			},
+			&opt,
+		)
+		defer cancel()
+		if err != nil{
+			c.JSON(http.StatusInternalServerError, gin.H{"error":"could not update the invoice"})
+			return 
+		}
+		c.JSON(http.StatusOK, result)
 	}
 }
