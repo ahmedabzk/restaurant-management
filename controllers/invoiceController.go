@@ -86,7 +86,22 @@ func GetInvoice() gin.HandlerFunc {
 
 func CreateInvoices() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
+		var invoice models.Invoice
+		if err := c.BindJSON(&invoice); err != nil{
+			c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
+			return 
+		}
+		var order models.Order
+
+		err := orderCollection.FindOne(ctx, bson.M{"order_id":invoice.Order_id}).Decode(&order)
+		defer cancel()
+
+		if err != nil{
+			c.JSON(http.StatusInternalServerError, gin.H{"error":"did not find the order"})
+			return 
+		}
 	}
 }
 
@@ -124,6 +139,11 @@ func UpdateInvoice() gin.HandlerFunc {
 
 		opt := options.UpdateOptions{
 			Upsert: &upset,
+		}
+
+		status := "PENDING"
+		if invoice.Payment_status == nil{
+			invoice.Payment_status = &status
 		}
 
 		result, err := invoiceCollection.UpdateOne(
