@@ -99,7 +99,7 @@ func inTimeSpan(start, end, check time.Time) bool{
 
 func UpdateMenu() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		ctx, cancel := 
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 		var menu models.Menu
 
