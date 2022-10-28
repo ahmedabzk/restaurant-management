@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -55,8 +56,11 @@ func GetUsers() gin.HandlerFunc {
 		var allUsers []bson.M
 
 		if err := result.All(ctx, &allUsers); err != nil{
-			
+		log.Fatal(err)
 		}
+		defer cancel()
+
+		c.JSON(http.StatusOK, allUsers)
 	}
 
 }
