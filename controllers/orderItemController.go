@@ -137,19 +137,47 @@ func UpdateOrderItem() gin.HandlerFunc{
 
 		var orderItem models.OrderItem
 
-		orderItemId := c.Param("order_id")
+		orderItemId := c.Param("order_item_id")
 
 		if err := c.BindJSON(&orderItem); err != nil{
 			c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
 			return 
 		}
+		var updateObj primitive.D
 
-		filter := bson.M{"order_id":orderItemId}
+		if orderItem.Unit_price != nil{
+			updateObj = append(updateObj, bson.E{"unit_price", orderItem.Unit_price})
+		}
+		if orderItem.Quantity != nil{
+			updateObj = append(updateObj, bson.E{"quantity", orderItem.Quantity})
+		}
+		if orderItem.Food_id != nil{
+			updateObj = append(updateObj, bson.E{"food_id",orderItem.Food_id})
+		}
+		orderItem.Updated_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+		updateObj = append(updateObj, bson.E{"updated_at",orderItem.Updated_at})
+
+		filter := bson.M{"order_item_id":orderItemId}
 
 		upset := true
 
 		opt := options.UpdateOptions{
 			Upsert: &upset,
 		}
+
+		result, err := orderItemCollection.UpdateOne(
+			ctx,
+			filter,
+			bson.D{
+				{"$set", updateObj},
+			},
+			&opt,
+		)
+		if err != nil{
+			c.JSON(http.StatusBadRequest, gin.H{"error":"could not update the order item"})
+			return 
+		}
+		defer cancel()
+		c.JSON(http.StatusOK, result)
 	}
 }
