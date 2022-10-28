@@ -36,7 +36,7 @@ func GetUsers() gin.HandlerFunc {
 
 		startIndex, err = strconv.Atoi(c.Query("startIndex"))
 
-		matchStage := bson.D{"$match", bson.D{{}}}
+		matchStage := bson.D{{"$match", bson.D{{}}}}
 		projectStage := bson.D{
 			{
 				"$project", bson.D{
