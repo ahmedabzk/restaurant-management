@@ -100,6 +100,18 @@ func ItemsByOrder(id string) (OrderItems []primitive.M, err error) {
 			{"order_items", 1},
 		}}}
 
+	result, err := orderItemCollection.Aggregate(ctx, mongo.Pipeline{
+		matchStage,
+		lookupStage,
+		unwindStage,
+		lookupOrderStage,
+		unwindOrderStage,
+		lookupTableStage,
+		unwindTableStage,
+		projectStage,
+		groupStage,
+		projectStage2})
+
 	return OrderItems, err
 }
 
