@@ -14,30 +14,30 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type OrderItemPack struct{
-	Table_id string
+type OrderItemPack struct {
+	Table_id    string
 	Order_items []models.OrderItem
 }
 
 var orderItemCollection *mongo.Collection = database.OpenCollection(database.Client, "orderItem")
 
-func GetOrderItems() gin.HandlerFunc{
+func GetOrderItems() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 
 		result, err := orderItemCollection.Find(context.TODO(), bson.M{})
 		defer cancel()
 
-		if err != nil{
-			c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 
 		var allOrderItems []bson.M
 
 		err = result.All(ctx, &allOrderItems)
-		if err != nil{
-			c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
-			return 
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
 		}
 		defer cancel()
 
@@ -45,21 +45,21 @@ func GetOrderItems() gin.HandlerFunc{
 	}
 }
 
-func GetOrderItemsByOrder() gin.HandlerFunc{
+func GetOrderItemsByOrder() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		orderId := c.Param("order_id")
 
 		allOrderItems, err := ItemsByOrder(orderId)
 
-		if err != nil{
-			c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
-			return 
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
 		}
 		c.JSON(http.StatusOK, allOrderItems)
 	}
 }
 
-func ItemsByOrder(id string) (OrderItems []primitive.M, err error){
+func ItemsByOrder(id string) (OrderItems []primitive.M, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 
 	matchStage := bson.D{{"$match", bson.D{{"order_id", id}}}}
@@ -86,38 +86,42 @@ func ItemsByOrder(id string) (OrderItems []primitive.M, err error){
 			{"quantity", 1},
 		}}}
 
-		return OrderItems, err
+	groupStage := bson.D{{"$group", bson.D{{"_id", bson.D{{"order_id", "$order_id"},
+		{"table_id", "$table_id"}, {"table_number", "$table_number"}}}, {"payment_due", bson.D{{"$sum", "$amount"}}},
+		{"total_count", bson.D{{"$sum", 1}}}, {"order_items", bson.D{{"$push", "$$ROOT"}}}}}}
+
+	return OrderItems, err
 }
 
-func GetOrderItem() gin.HandlerFunc{
+func GetOrderItem() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 
 		var orderItem models.OrderItem
 		orderItemId := c.Param("order_item_id")
 
-		err := orderItemCollection.FindOne(ctx, bson.M{"order_item_id":orderItemId}).Decode(&orderItem)
+		err := orderItemCollection.FindOne(ctx, bson.M{"order_item_id": orderItemId}).Decode(&orderItem)
 
 		defer cancel()
-		if err != nil{
-			c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
-			return 
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
 		}
 		c.JSON(http.StatusOK, orderItem)
 
 	}
 }
 
-func CreateOrderItems() gin.HandlerFunc{
+func CreateOrderItems() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 
 		var orderItemPack OrderItemPack
 		var order models.Order
 
-		if err := c.BindJSON(&orderItemPack); err != nil{
-			c.JSON(http.StatusBadRequest, gin.H{"error":err.Error()})
-			return 
+		if err := c.BindJSON(&orderItemPack); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
 		}
 
 		order.Order_date, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
@@ -126,14 +130,14 @@ func CreateOrderItems() gin.HandlerFunc{
 		order.Table_id = &orderItemPack.Table_id
 		order_id := OrderItemOrderCreator(order)
 
-		for _,orderItem := range orderItemPack.Order_items{
+		for _, orderItem := range orderItemPack.Order_items {
 			orderItem.Order_id = order_id
 
 			validationErr := validate.Struct(orderItem)
 
-			if validationErr != nil{
-				c.JSON(http.StatusBadRequest, gin.H{"error":validationErr.Error()})
-				return 
+			if validationErr != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": validationErr.Error()})
+				return
 			}
 
 			orderItem.ID = primitive.NewObjectID()
@@ -147,17 +151,17 @@ func CreateOrderItems() gin.HandlerFunc{
 			orderItemsToBeInserted = append(orderItemsToBeInserted, orderItem)
 		}
 
-		result, err :=orderItemCollection.InsertMany(ctx, orderItemsToBeInserted)
+		result, err := orderItemCollection.InsertMany(ctx, orderItemsToBeInserted)
 		defer cancel()
-		if err != nil{
-			c.JSON(http.StatusBadRequest, gin.H{"error":err.Error()})
-			return 
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
 		}
 		c.JSON(http.StatusOK, result)
 	}
 }
 
-func UpdateOrderItem() gin.HandlerFunc{
+func UpdateOrderItem() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 
@@ -165,25 +169,25 @@ func UpdateOrderItem() gin.HandlerFunc{
 
 		orderItemId := c.Param("order_item_id")
 
-		if err := c.BindJSON(&orderItem); err != nil{
-			c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
-			return 
+		if err := c.BindJSON(&orderItem); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
 		}
 		var updateObj primitive.D
 
-		if orderItem.Unit_price != nil{
+		if orderItem.Unit_price != nil {
 			updateObj = append(updateObj, bson.E{"unit_price", orderItem.Unit_price})
 		}
-		if orderItem.Quantity != nil{
+		if orderItem.Quantity != nil {
 			updateObj = append(updateObj, bson.E{"quantity", orderItem.Quantity})
 		}
-		if orderItem.Food_id != nil{
-			updateObj = append(updateObj, bson.E{"food_id",orderItem.Food_id})
+		if orderItem.Food_id != nil {
+			updateObj = append(updateObj, bson.E{"food_id", orderItem.Food_id})
 		}
 		orderItem.Updated_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
-		updateObj = append(updateObj, bson.E{"updated_at",orderItem.Updated_at})
+		updateObj = append(updateObj, bson.E{"updated_at", orderItem.Updated_at})
 
-		filter := bson.M{"order_item_id":orderItemId}
+		filter := bson.M{"order_item_id": orderItemId}
 
 		upset := true
 
@@ -199,9 +203,9 @@ func UpdateOrderItem() gin.HandlerFunc{
 			},
 			&opt,
 		)
-		if err != nil{
-			c.JSON(http.StatusBadRequest, gin.H{"error":"could not update the order item"})
-			return 
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "could not update the order item"})
+			return
 		}
 		defer cancel()
 		c.JSON(http.StatusOK, result)
