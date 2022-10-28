@@ -15,7 +15,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -45,16 +44,16 @@ func GetFoods() gin.HandlerFunc{
 		matchStage := bson.D{{"$match", bson.D{{}}}}
 		groupStage := bson.D{{"$group", bson.D{{"_id", bson.D{{"_id", "null"}}}, {"total_count", bson.D{{"$sum", "1"}}}, {"data", bson.D{{"$push","$$ROOT"}}}}}}
 		projectStage := bson.D{
-			"$project", bson.D{
-				{"id", 0},
-				{"total_count", 1},
-				{"food_items", bson.D{{"$slice", []interface{}{"$data", startIndex, recordPerPage}}}},
-			}
-		}
+			{
+				"$project", bson.D{
+					{"_id", 0},
+					{"total_count", 1},
+					{"food_items", bson.D{{"$slice", []interface{}{"$data", startIndex, recordPerPage}}}},
+				}}}
+		
 
 		result, err := foodCollection.Aggregate(ctx, mongo.Pipeline{
-			matchStage,grgroupStage, projprojectStage
-		})
+			matchStage,groupStage, projectStage})
 		defer cancel()
 
 		if err != nil{
@@ -63,7 +62,7 @@ func GetFoods() gin.HandlerFunc{
 
 		var allFoods []bson.M
 
-		if err := result.all(ctx, &allFoods); err != nil{
+		if err := result.All(ctx, &allFoods); err != nil{
 			log.Fatal(err)
 		}
 		c.JSON(http.StatusOK, allFoods[0])
@@ -135,7 +134,7 @@ func CreateFood() gin.HandlerFunc{
 }
 
 func round(num float64) int{
-	return int(num + math.Copysign(0.5, num)
+	return int(num + math.Copysign(0.5, num))
 }
 
 func toFixed(num float64, precision int) float64{
@@ -153,7 +152,7 @@ func UpdateFood()gin.HandlerFunc{
 		var foodID = c.Param("food_id")
 
 		if err := c.BindJSON(&food); err != nil{
-			c.JSON(http.StatusInternalServerError, gin.H{"error", err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
 		}
 
 		var updateObj primitive.D
@@ -170,7 +169,7 @@ func UpdateFood()gin.HandlerFunc{
 		}
 
 		if food.Menu_id != nil{
-			err := menuCollection.FindOne(ctx, bson.M{"menu_id", food.menu_id}).Decode(&menu)
+			err := menuCollection.FindOne(ctx, bson.M{"menu_id":food.Menu_id}).Decode(&menu)
 			if err != nil{
 				c.JSON(http.StatusBadRequest, gin.H{"error":err.Error()})
 			}
@@ -182,7 +181,7 @@ func UpdateFood()gin.HandlerFunc{
 		updateObj = append(updateObj, bson.E{"updated_at", food.Updated_at})
 
 		upsert := true
-		filter := bson.M{"food_id":food.Food_id}
+		filter := bson.M{"food_id":foodID}
 
 		opt := options.UpdateOptions{
 			Upsert: &upsert,
@@ -194,10 +193,10 @@ func UpdateFood()gin.HandlerFunc{
 			bson.D{
 				{"$set", updateObj},
 			},
-			&opt
+			&opt,
 		)
 		if err != nil{
-			c.JSON(http.StatusBadRequest, gin.H{"error", err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"error":err.Error()})
 		}
 		defer cancel()
 		c.JSON(http.StatusOK, result)
