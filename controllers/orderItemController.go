@@ -14,6 +14,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+type OrderItemPack struct{
+	Table_id string
+	Order_items []models.OrderItem
+}
+
 var orderItemCollection *mongo.Collection = database.OpenCollection(database.Client, "orderItem")
 
 func GetOrderItems() gin.HandlerFunc{
@@ -42,7 +47,15 @@ func GetOrderItems() gin.HandlerFunc{
 
 func GetOrderItemsByOrder() gin.HandlerFunc{
 	return func(c *gin.Context) {
+		orderId := c.Param("order_id")
 
+		allOrderItems, err := ItemsByOrder(orderId)
+
+		if err != nil{
+			c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
+			return 
+		}
+		c.JSON(http.StatusOK, allOrderItems)
 	}
 }
 
