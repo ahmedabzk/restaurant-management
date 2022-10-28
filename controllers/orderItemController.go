@@ -85,6 +85,8 @@ func ItemsByOrder(id string) (OrderItems []primitive.M, err error){
 			{"price", "$food.price"},
 			{"quantity", 1},
 		}}}
+
+		return OrderItems, err
 }
 
 func GetOrderItem() gin.HandlerFunc{
