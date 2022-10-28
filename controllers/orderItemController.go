@@ -120,6 +120,8 @@ func ItemsByOrder(id string) (OrderItems []primitive.M, err error) {
 		panic(err)
 	}
 
+	defer cancel()
+
 	return OrderItems, err
 }
 
