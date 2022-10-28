@@ -112,6 +112,10 @@ func ItemsByOrder(id string) (OrderItems []primitive.M, err error) {
 		groupStage,
 		projectStage2})
 
+	if err != nil {
+		panic(err)
+	}
+
 	return OrderItems, err
 }
 
