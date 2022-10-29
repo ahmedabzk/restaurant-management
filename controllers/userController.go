@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"log"
@@ -163,7 +162,7 @@ func Login() gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
 		}
 
-		err := userCollection.FindOne(ctx, bson.M{"email":foundUser.Email}).Decode(&foundUser)
+		err := userCollection.FindOne(ctx, bson.M{"email":user.Email}).Decode(&foundUser)
 		defer cancel()
 
 		if err != nil{
