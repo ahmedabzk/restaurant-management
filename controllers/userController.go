@@ -40,13 +40,13 @@ func GetUsers() gin.HandlerFunc {
 
 		startIndex, err = strconv.Atoi(c.Query("startIndex"))
 
-		matchStage := bson.D{{"$match", bson.D{{}}}}
+		matchStage := bson.D{{Key: "$match", Value: bson.D{{}}}}
 		projectStage := bson.D{
 			{
-				"$project", bson.D{
-					{"_id", 0},
-					{"total_count", 1},
-					{"user_items", bson.D{{"$slice", []interface{}{"$data", startIndex, recordPerPage}}}},
+				Key: "$project", Value: bson.D{
+					{Key: "_id", Value: 0},
+					{Key: "total_count", Value: 1},
+					{Key: "user_items", Value: bson.D{{Key: "$slice", Value: []interface{}{"$data", startIndex, recordPerPage}}}},
 				}}}
 		result, err := userCollection.Aggregate(ctx, mongo.Pipeline{
 			matchStage, projectStage})
@@ -77,12 +77,12 @@ func GetUser() gin.HandlerFunc {
 		var user models.User
 
 		err := userCollection.FindOne(ctx, bson.M{"user_id": userId}).Decode(&user)
-
+		defer cancel()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		defer cancel()
+		
 		c.JSON(http.StatusOK, user)
 	}
 }
@@ -95,7 +95,6 @@ func Signup() gin.HandlerFunc {
 
 		if err := c.BindJSON(&user); err != nil{
 			c.JSON(http.StatusBadRequest, gin.H{"error":err.Error()})
-			return 
 		}
 
 		// check if email already exists
