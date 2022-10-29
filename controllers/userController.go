@@ -8,9 +8,11 @@ import (
 	"time"
 
 	"github.com/ahmedabzk/restaurant-management/database"
+	"github.com/ahmedabzk/restaurant-management/helpers"
 	"github.com/ahmedabzk/restaurant-management/models"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -85,14 +87,95 @@ func GetUser() gin.HandlerFunc {
 }
 
 func Signup() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
+	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 
+		var user models.User
+
+		if err := c.BindJSON(&user); err != nil{
+			c.JSON(http.StatusBadRequest, gin.H{"error":err.Error()})
+			return 
+		}
+
+		// check if email already exists
+		count, err := userCollection.CountDocuments(ctx, bson.M{"email":user.Email})
+		defer cancel()
+
+		if err != nil{
+			log.Fatal(err)
+			c.JSON(http.StatusBadRequest, gin.H{"error":err.Error()})
+			return 
+		}
+
+		// hash password
+		password := HashPassword(*user.Password)
+		user.Password = &password
+
+		// check if phone number exists
+		count, err = userCollection.CountDocuments(ctx, bson.M{"phone":user.Phone})
+		defer cancel()
+		if err != nil{
+			log.Fatal(err)
+			c.JSON(http.StatusBadRequest, gin.H{"error":err.Error()})
+			return 
+		}
+
+		user.Created_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+		user.Updated_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+
+		user.ID = primitive.NewObjectID()
+		user.User_id = user.ID.Hex()
+
+		// generate token
+		token, refreshToken, _ := helpers.GenerateToken(*user.Email, *user.First_name, *user.Last_name, user.User_id)
+		token = &token
+		refreshToken = &refreshToken
+
+		// insert user to the database
+
+		result, insertionErr := userCollection.InsertOne(ctx, user)
+		defer cancel()
+
+		if insertionErr != nil{
+			log.Fatal(insertionErr)
+			c.JSON(http.StatusInternalServerError, gin.H{"error":insertionErr.Error()})
+			return 
+		}
+
+		c.JSON(http.StatusOK, result)
 	}
 }
 
 func Login() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
+	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+		var user models.User
 
+		var foundUser models.User
+
+		if err := c.BindJSON(&user); err != nil{
+			log.Fatal(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
+		}
+
+		err := userCollection.FindOne(ctx, bson.M{"email":foundUser.Email}).Decode(&foundUser)
+		defer cancel()
+
+		if err != nil{
+			c.JSON(http.StatusBadRequest, gin.H{"error":"can not login, check your email or password again"})
+			return 
+		}
+
+		// verify password
+		passwordIsValid, msg := helpers.VerifyPassword(*user.Password, *foundUser.Password)
+
+		if passwordIsValid != true{
+			c.JSON(http.StatusBadRequest, gin.H{"error":msg})
+			return 
+		}
+		// generate token
+		token, refreshToken, _ := helpers.GenerateToken(*&foundUser.Email, *&foundUser.First_name, *&foundUser.Last_name, *&foundUser.User_id)
+		// update token
 	}
 }
 
