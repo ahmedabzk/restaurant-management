@@ -50,12 +50,11 @@ func GetUsers() gin.HandlerFunc {
 				}}}
 		result, err := userCollection.Aggregate(ctx, mongo.Pipeline{
 			matchStage, projectStage})
-
+			defer cancel()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error":"error occured while trying to list user items"})
 			return 
 		}
-		defer cancel()
 
 		var allUsers []bson.M
 
