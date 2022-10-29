@@ -21,12 +21,11 @@ func GetTables() gin.HandlerFunc {
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 
 		result, err := tableCollection.Find(context.TODO(), bson.M{})
-
+		defer cancel()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not find the tables in the database"})
-			return
 		}
-		defer cancel()
+		
 
 		var alltables []bson.M
 
@@ -49,11 +48,11 @@ func GetTable() gin.HandlerFunc {
 		var table models.Table
 
 		err := tableCollection.FindOne(ctx, bson.M{"table_id": tableId}).Decode(&table)
+		defer cancel()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "can not find such table in the database"})
-			return
+		
 		}
-		defer cancel()
 		c.JSON(http.StatusOK, table)
 	}
 }
@@ -66,14 +65,14 @@ func CreateTables() gin.HandlerFunc {
 
 		if err := c.BindJSON(&table); err != nil{
 			c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
-			return 
+			
 		}
 		 
 		validationErr := validate.Struct(table)
 
 		if validationErr != nil{
 			c.JSON(http.StatusBadRequest, gin.H{"error":validationErr.Error()})
-			return 
+	
 		}
 		table.Created_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
 		table.Updated_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
@@ -81,11 +80,11 @@ func CreateTables() gin.HandlerFunc {
 		table.Table_id = table.ID.Hex()
 
 		result, insertionErr := tableCollection.InsertOne(ctx, table)
+		defer cancel()
 		if insertionErr != nil{
 			c.JSON(http.StatusInternalServerError, gin.H{"error":insertionErr.Error()})
-			return 
+
 		}
-		defer cancel()
 		c.JSON(http.StatusOK, result)
 	}
 }
@@ -98,7 +97,7 @@ func UpdateTable() gin.HandlerFunc {
 
 		if err := c.BindJSON(&table); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
+		
 		}
 
 		filter := bson.M{"table_id": tableId}
@@ -112,30 +111,30 @@ func UpdateTable() gin.HandlerFunc {
 		}
 
 		if table.Number_of_guests != nil{
-			updateObj = append(updateObj, bson.E{"number_of_guests",table.Number_of_guests})
+			updateObj = append(updateObj, bson.E{Key: "number_of_guests",Value: table.Number_of_guests})
 		}
 
 		if table.Table_number != nil{
-			updateObj = append(updateObj, bson.E{"table_number",table.Table_number})
+			updateObj = append(updateObj, bson.E{Key: "table_number",Value: table.Table_number})
 		}
 
 		table.Updated_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
-		updateObj = append(updateObj, bson.E{"updated_at", table.Updated_at})
+		updateObj = append(updateObj, bson.E{Key: "updated_at", Value: table.Updated_at})
 
 		result, err := tableCollection.UpdateOne(
 			ctx,
 			filter,
 			bson.D{
-				{"$set",updateObj},
+				{Key: "$set",Value: updateObj},
 			},
 			&opt,
 		)
+		defer cancel()
 
 		if err != nil{
 			c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
-			return 
 		}
-		defer cancel()
+
 
 		c.JSON(http.StatusOK, result)
 
