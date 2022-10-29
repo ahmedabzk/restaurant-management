@@ -132,8 +132,8 @@ func Signup() gin.HandlerFunc {
 
 		// generate token
 		token, refreshToken, _ := helpers.GenerateAllToken(*user.Email, *user.First_name, *user.Last_name, user.User_id)
-		token = &token
-		refreshToken = &refreshToken
+		user.Token = &token
+		user.Refresh_token = &refreshToken
 
 		// insert user to the database
 
@@ -178,7 +178,7 @@ func Login() gin.HandlerFunc {
 			return 
 		}
 		// generate token
-		token, refreshToken, _ := helpers.GenerateAllToken(*&foundUser.Email, *&foundUser.First_name, *&foundUser.Last_name, *&foundUser.User_id)
+		token, refreshToken, _ := helpers.GenerateAllToken(*foundUser.Email, *foundUser.First_name, *foundUser.Last_name, foundUser.User_id)
 		// update token
 
 		helpers.UpdateAllToken(token, refreshToken, foundUser.User_id)
