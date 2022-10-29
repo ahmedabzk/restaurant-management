@@ -119,7 +119,9 @@ func Signup() gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error":err.Error()})
 			return 
 		}
-
+		if count > 0{
+			c.JSON(http.StatusBadRequest, gin.H{"error":"email or phone number already exists"})
+		}
 		user.Created_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
 		user.Updated_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
 
@@ -127,7 +129,7 @@ func Signup() gin.HandlerFunc {
 		user.User_id = user.ID.Hex()
 
 		// generate token
-		token, refreshToken, _ := helpers.GenerateToken(*user.Email, *user.First_name, *user.Last_name, user.User_id)
+		token, refreshToken, _ := helpers.GenerateAllToken(*user.Email, *user.First_name, *user.Last_name, user.User_id)
 		token = &token
 		refreshToken = &refreshToken
 
@@ -174,8 +176,10 @@ func Login() gin.HandlerFunc {
 			return 
 		}
 		// generate token
-		token, refreshToken, _ := helpers.GenerateToken(*&foundUser.Email, *&foundUser.First_name, *&foundUser.Last_name, *&foundUser.User_id)
+		token, refreshToken, _ := helpers.GenerateAllToken(*&foundUser.Email, *&foundUser.First_name, *&foundUser.Last_name, *&foundUser.User_id)
 		// update token
+
+		helpers.UpdateAllToken(token, refreshToken, foundUser.User_id)
 	}
 }
 

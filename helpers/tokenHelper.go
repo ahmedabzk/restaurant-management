@@ -1,9 +1,13 @@
 package helpers
 
-func GenerateToken(){
+func GenerateAllToken(){
 
 }
 
 func VerifyPassword(){
+
+}
+
+func UpdateAllToken(){
 	
 }
