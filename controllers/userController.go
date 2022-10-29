@@ -169,7 +169,7 @@ func Login() gin.HandlerFunc {
 		}
 
 		// verify password
-		passwordIsValid, msg := helpers.VerifyPassword(*user.Password, *foundUser.Password)
+		passwordIsValid, msg := VerifyPassword(*user.Password, *foundUser.Password)
 
 		if passwordIsValid != true{
 			c.JSON(http.StatusBadRequest, gin.H{"error":msg})
@@ -180,6 +180,8 @@ func Login() gin.HandlerFunc {
 		// update token
 
 		helpers.UpdateAllToken(token, refreshToken, foundUser.User_id)
+
+		c.JSON(http.StatusOK, foundUser)
 	}
 }
 

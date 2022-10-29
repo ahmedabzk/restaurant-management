@@ -4,10 +4,7 @@ func GenerateAllToken(){
 
 }
 
-func VerifyPassword(){
-
-}
 
 func UpdateAllToken(){
-	
+
 }
