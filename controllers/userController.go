@@ -1,7 +1,9 @@
 package controllers
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -14,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var userCollection *mongo.Collection = database.OpenCollection(database.Client, "users")
@@ -186,9 +189,23 @@ func Login() gin.HandlerFunc {
 }
 
 func HashPassword(password string) string {
-
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	if err != nil{
+		log.Fatal(err)
+	}
+	return string(bytes)
 }
 
 func VerifyPassword(userPassword, providedPassword string) (bool, string) {
+	err := bcrypt.CompareHashAndPassword([]byte(providedPassword), []byte(userPassword))
 
+	check := true
+	msg := ""
+
+	if err != nil{
+		msg = fmt.Sprintf("email or password is wrong")
+		check = false
+	}
+
+	return check, msg
 }
