@@ -105,7 +105,6 @@ func UpdateMenu() gin.HandlerFunc {
 
 		if err := c.BindJSON(&menu); err != nil{
 			c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
-			
 		}
 		menuId := c.Param("menu_id")
 		filter := bson.M{"menu_id":menuId}
@@ -116,7 +115,8 @@ func UpdateMenu() gin.HandlerFunc {
 			if !inTimeSpan(*menu.Start_date, *menu.End_date, time.Now()){
 				msg := fmt.Sprintf("please retype the time")
 				c.JSON(http.StatusInternalServerError, gin.H{"error":msg})
-				
+				defer cancel()
+				return 
 			}
 			updateObj = append(updateObj, bson.E{Key: "start_date", Value: menu.Start_date})
 			updateObj = append(updateObj, bson.E{Key: "end_date", Value: menu.End_date})
@@ -144,7 +144,9 @@ func UpdateMenu() gin.HandlerFunc {
 				},
 				&opt,
 			)
+
 			defer cancel()
+
 			if err != nil{
 				c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
 			}
