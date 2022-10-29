@@ -98,14 +98,13 @@ func CreateFood() gin.HandlerFunc{
 
 		if err := c.BindJSON(&food); err != nil{
 			c.JSON(http.StatusBadRequest, gin.H{"error":err.Error()})
-			return 
 		}
 
 		validationErr := validate.Struct(food)
 
 		if validationErr != nil{
 			c.JSON(http.StatusBadRequest, gin.H{"error": validationErr.Error()})
-			return 
+			 
 		}
 		err := menuCollection.FindOne(ctx, bson.M{"menu_id":food.Menu_id}).Decode(&menu)
 		defer cancel()
@@ -158,14 +157,14 @@ func UpdateFood()gin.HandlerFunc{
 		var updateObj primitive.D
 
 		if food.Name != nil{
-			updateObj = append(updateObj, bson.E{"name", food.Name})
+			updateObj = append(updateObj, bson.E{Key: "name", Value: food.Name})
 		}
 		if food.Price != nil{
-			updateObj = append(updateObj, bson.E{"price", food.Price})
+			updateObj = append(updateObj, bson.E{Key: "price", Value: food.Price})
 		}
 
 		if food.Food_image != nil{
-			updateObj = append(updateObj, bson.E{"food_image", food.Food_image})
+			updateObj = append(updateObj, bson.E{Key: "food_image", Value: food.Food_image})
 		}
 
 		if food.Menu_id != nil{
@@ -175,10 +174,10 @@ func UpdateFood()gin.HandlerFunc{
 			}
 			defer cancel()
 
-			updateObj = append(updateObj, bson.E{"menu", food.Price})
+			updateObj = append(updateObj, bson.E{Key: "menu", Value: food.Price})
 		}
 		food.Updated_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
-		updateObj = append(updateObj, bson.E{"updated_at", food.Updated_at})
+		updateObj = append(updateObj, bson.E{Key: "updated_at", Value: food.Updated_at})
 
 		upsert := true
 		filter := bson.M{"food_id":foodID}
@@ -191,7 +190,7 @@ func UpdateFood()gin.HandlerFunc{
 			ctx,
 			filter,
 			bson.D{
-				{"$set", updateObj},
+				{Key: "$set", Value: updateObj},
 			},
 			&opt,
 		)
