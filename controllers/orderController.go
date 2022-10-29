@@ -66,13 +66,13 @@ func CreateOrders() gin.HandlerFunc {
 
 		if err := c.BindJSON(&order); err != nil{
 			c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
-			return 
+			
 		}
 
 		validateErr := validate.Struct(order)
 		if validateErr != nil{
 			c.JSON(http.StatusInternalServerError, gin.H{"error":validateErr.Error()})
-			return 
+	
 		}
 
 		if order.Table_id != nil{
@@ -90,13 +90,12 @@ func CreateOrders() gin.HandlerFunc {
 		order.Order_id = order.ID.Hex()
 
 		result, insertErr := orderCollection.InsertOne(ctx, order)
-
+		defer cancel()
 		if insertErr != nil{
 			msg := fmt.Sprintf("could not create the new order")
 			c.JSON(http.StatusBadRequest, gin.H{"error":msg})
-			return 
+			
 		}
-		defer cancel()
 		c.JSON(http.StatusOK, result)
 	}
 }
@@ -114,7 +113,7 @@ func UpdateOrder() gin.HandlerFunc {
 
 		if err := c.BindJSON(&order); err != nil{
 			c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
-			return 
+			
 		}
 		if order.Table_id != nil{
 			err := menuCollection.FindOne(ctx, bson.M{"table_id":order.Table_id}).Decode(&table)
@@ -125,10 +124,10 @@ func UpdateOrder() gin.HandlerFunc {
 				c.JSON(http.StatusBadRequest, gin.H{"error":err.Error()})
 				return 
 			}
-			updateObj = append(updateObj, bson.E{"menu", order.Table_id})
+			updateObj = append(updateObj, bson.E{Key: "menu", Value: order.Table_id})
 		}
 		order.Updated_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
-		updateObj = append(updateObj, bson.E{"updated_at", order.Updated_at})
+		updateObj = append(updateObj, bson.E{Key: "updated_at", Value: order.Updated_at})
 
 		upset := true
 		filter := bson.M{"order_id":orderId}
@@ -141,7 +140,7 @@ func UpdateOrder() gin.HandlerFunc {
 			ctx,
 			filter,
 			bson.D{
-				{"&set", updateObj},
+				{Key: "&set", Value: updateObj},
 			},
 			&opt,
 		)
