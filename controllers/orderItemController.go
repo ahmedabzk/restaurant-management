@@ -88,16 +88,16 @@ func ItemsByOrder(id string) (OrderItems []primitive.M, err error) {
 
 	groupStage := bson.D{{Key: "$group", Value: bson.D{{Key: "_id", Value: bson.D{{Key: "order_id", Value: "$order_id"},
 		{Key: "table_id", Value: "$table_id"}, {Key: "table_number", Value: "$table_number"}}}, {Key: "payment_due", Value: bson.D{{Key: "$sum", Value: "$amount"}}},
-		{Key: "total_count", Value: bson.D{{Key: "$sum", Value: 1}}}, {"order_items", bson.D{{"$push", "$$ROOT"}}}}}}
+		{Key: "total_count", Value: bson.D{{Key: "$sum", Value: 1}}}, {Key: "order_items", Value: bson.D{{Key: "$push", Value: "$$ROOT"}}}}}}
 
 	projectStage2 := bson.D{
-		{"$project", bson.D{
+		{Key: "$project", Value: bson.D{
 
-			{"id", 0},
-			{"payment_due", 1},
-			{"total_count", 1},
-			{"table_number", "$_id.table_number"},
-			{"order_items", 1},
+			{Key: "id", Value: 0},
+			{Key: "payment_due", Value: 1},
+			{Key: "total_count", Value: 1},
+			{Key: "table_number", Value: "$_id.table_number"},
+			{Key: "order_items", Value: 1},
 		}}}
 
 	result, err := orderItemCollection.Aggregate(ctx, mongo.Pipeline{
@@ -153,7 +153,6 @@ func CreateOrderItems() gin.HandlerFunc {
 
 		if err := c.BindJSON(&orderItemPack); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
 		}
 
 		order.Order_date, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
@@ -169,7 +168,6 @@ func CreateOrderItems() gin.HandlerFunc {
 
 			if validationErr != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": validationErr.Error()})
-				return
 			}
 
 			orderItem.ID = primitive.NewObjectID()
@@ -203,21 +201,21 @@ func UpdateOrderItem() gin.HandlerFunc {
 
 		if err := c.BindJSON(&orderItem); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
+		
 		}
 		var updateObj primitive.D
 
 		if orderItem.Unit_price != nil {
-			updateObj = append(updateObj, bson.E{"unit_price", orderItem.Unit_price})
+			updateObj = append(updateObj, bson.E{Key: "unit_price", Value: orderItem.Unit_price})
 		}
 		if orderItem.Quantity != nil {
-			updateObj = append(updateObj, bson.E{"quantity", orderItem.Quantity})
+			updateObj = append(updateObj, bson.E{Key: "quantity", Value: orderItem.Quantity})
 		}
 		if orderItem.Food_id != nil {
-			updateObj = append(updateObj, bson.E{"food_id", orderItem.Food_id})
+			updateObj = append(updateObj, bson.E{Key: "food_id", Value: orderItem.Food_id})
 		}
 		orderItem.Updated_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
-		updateObj = append(updateObj, bson.E{"updated_at", orderItem.Updated_at})
+		updateObj = append(updateObj, bson.E{Key: "updated_at", Value: orderItem.Updated_at})
 
 		filter := bson.M{"order_item_id": orderItemId}
 
@@ -231,15 +229,15 @@ func UpdateOrderItem() gin.HandlerFunc {
 			ctx,
 			filter,
 			bson.D{
-				{"$set", updateObj},
+				{Key: "$set", Value: updateObj},
 			},
 			&opt,
 		)
+		defer cancel()
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "could not update the order item"})
-			return
 		}
-		defer cancel()
+		
 		c.JSON(http.StatusOK, result)
 	}
 }
